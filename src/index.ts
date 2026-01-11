@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { swaggerUI } from "@hono/swagger-ui";
+import { Context } from "hono";
 import { handleSearch } from "./search/index";
 import { handleAlbumDetails } from "./albums/index";
 import { handleArtistDetails } from "./artists/index";
@@ -15,7 +16,7 @@ const BASE_URL = "https://api.audiomack.com/v1";
 
 app.get("/", swaggerUI({ url: "/openapi.json" }));
 
-app.get("/openapi.json", (c) => {
+app.get("/openapi.json", (c: Context) => {
   const host = c.req.header("host") || "localhost:3001";
   const protocol = host.includes("localhost") ? "http" : "https";
 
@@ -34,7 +35,7 @@ app.get("/openapi.json", (c) => {
 
 // Mount Handlers
 app.get("/search", handleSearch);
-app.get("/music/:id", async (c) => {
+app.get("/music/:id", async (c: Context) => {
   const id = c.req.param("id");
   try {
     const data = await signedFetch(`${BASE_URL}/music/${id}`) as any;
@@ -50,7 +51,7 @@ app.get("/recommendations/:id", handleRecommendations);
 app.get("/resolve", handleResolve);
 
 // Play Stream
-app.get("/play/:id", async (c) => {
+app.get("/play/:id", async (c: Context) => {
   const id = c.req.param("id");
   try {
     const data = await signedFetch(`${BASE_URL}/music/play/${id}?environment=desktop-web`) as any;

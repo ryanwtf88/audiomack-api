@@ -1,6 +1,6 @@
 import { generateOAuthHeader } from "./oauth";
 
-export async function signedFetch(url: string, options: any = {}): Promise<any> {
+export async function signedFetch(url: string, options: RequestInit = {}): Promise<any> {
     const method = options.method || "GET";
     const authHeader = generateOAuthHeader(method, url);
 

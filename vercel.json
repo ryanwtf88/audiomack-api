@@ -1,5 +1,11 @@
 {
     "version": 2,
+    "functions": {
+        "api/index.ts": {
+            "runtime": "bun"
+        }
+    },
+    "buildCommand": "bun run build:vercel",
     "bunVersion": "1.x",
     "name": "audiomack-api",
     "rewrites": [

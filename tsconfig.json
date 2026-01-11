@@ -5,7 +5,7 @@
         "lib": [
             "ESNext"
         ],
-        "moduleResolution": "bundler",
+        "moduleResolution": "node",
         "types": [
             "bun-types"
         ],

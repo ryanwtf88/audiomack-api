@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { handle } from "hono/vercel";
 import { swaggerUI } from "@hono/swagger-ui";
+import { Context } from "hono";
 import { handleSearch } from "../src/search/index";
 import { handleAlbumDetails } from "../src/albums/index";
 import { handleArtistDetails } from "../src/artists/index";
@@ -16,7 +17,7 @@ const BASE_URL = "https://api.audiomack.com/v1";
 
 app.get("/", swaggerUI({ url: "/openapi.json" }));
 
-app.get("/openapi.json", (c) => {
+app.get("/openapi.json", (c: Context) => {
     const host = c.req.header("host") || "localhost:3001";
     const protocol = "https";
 
@@ -35,7 +36,7 @@ app.get("/openapi.json", (c) => {
 
 app.get("/search", handleSearch);
 
-app.get("/music/:id", async (c) => {
+app.get("/music/:id", async (c: Context) => {
     const id = c.req.param("id");
     try {
         const data = await signedFetch(`${BASE_URL}/music/${id}`);
@@ -51,7 +52,7 @@ app.get("/playlist/:id", handlePlaylistDetails);
 app.get("/recommendations/:id", handleRecommendations);
 app.get("/resolve", handleResolve);
 
-app.get("/play/:id", async (c) => {
+app.get("/play/:id", async (c: Context) => {
     const id = c.req.param("id");
     try {
         const data = await signedFetch(`${BASE_URL}/music/play/${id}?environment=desktop-web`);
