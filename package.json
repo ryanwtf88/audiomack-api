@@ -1,0 +1,35 @@
+{
+  "name": "audiomack-api",
+  "version": "1.0.0",
+  "description": "Unofficial Audiomack API wrapper with support for search, tracks, albums, artists, playlists, and recommendations",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "audiomack",
+    "api",
+    "music",
+    "streaming",
+    "wrapper",
+    "hono",
+    "bun"
+  ],
+  "author": "RY4N",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/swagger-ui": "^0.5.3",
+    "hono": "^4.11.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@vercel/node": "^3.0.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}
