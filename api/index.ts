@@ -1,65 +1,29 @@
-import { Hono } from "hono";
-import { handle } from "hono/vercel";
-import { swaggerUI } from "@hono/swagger-ui";
-import { Context } from "hono";
-import { handleSearch } from "../src/search/index";
-import { handleAlbumDetails } from "../src/albums/index";
-import { handleArtistDetails } from "../src/artists/index";
-import { handlePlaylistDetails } from "../src/playlists/index";
-import { handleRecommendations } from "../src/recommendations/index";
-import { handleResolve } from "../src/resolve/index";
-import { signedFetch } from "../src/utils/fetch";
-import { formatTrack } from "../src/utils/formatter";
-import { openAPISpec } from "../src/utils/openapi";
+import { app } from "../src/app.js";
 
-const app = new Hono();
-const BASE_URL = "https://api.audiomack.com/v1";
-
-app.get("/", swaggerUI({ url: "/openapi.json" }));
-
-app.get("/openapi.json", (c: Context) => {
-    const host = c.req.header("host") || "localhost:3001";
-    const protocol = "https";
-
-    const spec = {
-        ...openAPISpec,
-        servers: [
-            {
-                url: `${protocol}://${host}`,
-                description: "Production server"
-            }
-        ]
-    };
-
-    return c.json(spec);
-});
-
-app.get("/search", handleSearch);
-
-app.get("/music/:id", async (c: Context) => {
-    const id = c.req.param("id");
+export default async function handler(req: any, res: any) {
     try {
-        const data = await signedFetch(`${BASE_URL}/music/${id}`);
-        return c.json(formatTrack(data.results));
+        const protocol = req.headers["x-forwarded-proto"] || "https";
+        const host = req.headers["host"] || "example.com";
+        // Ensure req.url starts with /
+        const path = req.url.startsWith("/") ? req.url : "/" + req.url;
+        const url = new URL(path, `${protocol}://${host}`);
+
+        const request = new Request(url.toString(), {
+            method: req.method,
+            headers: req.headers as any,
+            body: (req.method !== "GET" && req.method !== "HEAD") ? JSON.stringify(req.body) : undefined,
+        });
+
+        const response = await app.fetch(request);
+
+        res.statusCode = response.status;
+        response.headers.forEach((value, key) => res.setHeader(key, value));
+
+        const arrayBuffer = await response.arrayBuffer();
+        res.end(Buffer.from(arrayBuffer));
     } catch (err: any) {
-        return c.json({ error: err.message }, 500);
+        console.error("Handler Error:", err);
+        res.statusCode = 500;
+        res.json({ error: "Internal Server Error", details: err.message });
     }
-});
-
-app.get("/album/:id", handleAlbumDetails);
-app.get("/artist/:slug", handleArtistDetails);
-app.get("/playlist/:id", handlePlaylistDetails);
-app.get("/recommendations/:id", handleRecommendations);
-app.get("/resolve", handleResolve);
-
-app.get("/play/:id", async (c: Context) => {
-    const id = c.req.param("id");
-    try {
-        const data = await signedFetch(`${BASE_URL}/music/play/${id}?environment=desktop-web`);
-        return c.json({ stream_url: data.url });
-    } catch (err: any) {
-        return c.json({ error: err.message }, 500);
-    }
-});
-
-export default handle(app);
+}

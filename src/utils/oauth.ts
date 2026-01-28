@@ -1,46 +1,60 @@
-import { createHmac } from "crypto";
+import { createHmac, randomBytes } from "crypto";
 
-const CONSUMER_KEY = process.env.AUDIOMACK_CONSUMER_KEY || "audiomack-web";
-const CONSUMER_SECRET = process.env.AUDIOMACK_CONSUMER_SECRET || "bd8a07e9f23fbe9d808646b730f89b8e";
+const CONSUMER_KEY = "audiomack-web";
+const CONSUMER_SECRET = "bd8a07e9f23fbe9d808646b730f89b8e";
 
-export function generateOAuthHeader(method: string, url: string, params: Record<string, string> = {}) {
-  const oauthParams: Record<string, string> = {
+const STRICT_URI_RE = /[!'()*]/g;
+
+function strictEncodeURIComponent(str: string) {
+  return encodeURIComponent(String(str)).replace(
+    STRICT_URI_RE,
+    (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase()
+  );
+}
+
+function buildParamString(params: Record<string, string>) {
+  return Object.keys(params)
+    .sort()
+    .map(
+      (k) =>
+        `${strictEncodeURIComponent(k)}=${strictEncodeURIComponent(params[k])}`
+    )
+    .join("&");
+}
+
+function generateSignature(
+  method: string,
+  url: string,
+  params: Record<string, string>,
+  consumerSecret: string,
+  paramString: string
+) {
+  const baseString = `${method.toUpperCase()}&${strictEncodeURIComponent(
+    url
+  )}&${strictEncodeURIComponent(paramString)}`;
+  const signingKey = `${strictEncodeURIComponent(consumerSecret)}&`;
+
+  return createHmac("sha1", signingKey).update(baseString).digest("base64");
+}
+
+export function generateSignedUrl(method: string, baseUrl: string, additionalParams: Record<string, string> = {}) {
+  const params: Record<string, string> = {
+    ...additionalParams,
     oauth_consumer_key: CONSUMER_KEY,
-    oauth_nonce: Math.random().toString(36).substring(2),
+    oauth_nonce: randomBytes(16).toString("hex"),
     oauth_signature_method: "HMAC-SHA1",
     oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
     oauth_version: "1.0",
-    ...params,
   };
 
-  const urlObj = new URL(url);
+  const paramString = buildParamString(params);
+  const signature = generateSignature(
+    method,
+    baseUrl,
+    params,
+    CONSUMER_SECRET,
+    paramString
+  );
 
-  const allParams: Record<string, string> = { ...oauthParams };
-  urlObj.searchParams.forEach((value, key) => {
-    allParams[key] = value;
-  });
-
-  const sortedKeys = Object.keys(allParams).sort();
-  const paramString = sortedKeys
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(allParams[key]!)}`)
-    .join("&");
-
-  const baseString = `${method.toUpperCase()}&${encodeURIComponent(
-    urlObj.origin + urlObj.pathname
-  )}&${encodeURIComponent(paramString)}`;
-
-  const signingKey = `${encodeURIComponent(CONSUMER_SECRET)}&`;
-
-  const hmac = createHmac("sha1", signingKey);
-  hmac.update(baseString);
-  const signature = hmac.digest("base64");
-
-  oauthParams.oauth_signature = signature;
-
-  const header = Object.keys(oauthParams)
-    .sort()
-    .map((key) => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key]!)}"`)
-    .join(", ");
-
-  return `OAuth ${header}`;
+  return `${baseUrl}?${paramString}&oauth_signature=${strictEncodeURIComponent(signature)}`;
 }
